@@ -99,10 +99,10 @@ document.addEventListener('DOMContentLoaded', () => {
     console.log('Section toggle and project filtering initialized');
 
     const projectLinks = {
-        'card-1': 'https://kyuhongl.github.io/nlp-to-glsl/',
-        'card-2': 'https://github.com/kyuhongl/height-fields-opengl',
-        'card-3': 'https://github.com/kyuhongl/godot-firebase-multiplayer',
-        'card-4': '#',
+        'card-1': 'https://kyuhong.com',
+        'card-2': 'https://github.com/kyuhongl/opengl-rendering-portfolio',
+        'card-3': 'https://kyuhongl.github.io/nlp-to-glsl/',
+        'card-4': 'https://github.com/kyuhongl/godot-firebase-multiplayer',
         'card-5': 'https://github.com/kyuhongl/fact-check-final',
         'card-6': 'https://kyuhongl.github.io/connections-korean/',
         
@@ -139,7 +139,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
-    console.log('Card click functionality initialized for both projects and experience');
 
     const video = document.querySelector('.height-field-video');
     if (video) {
@@ -171,6 +170,39 @@ document.addEventListener('DOMContentLoaded', () => {
         });
 
         console.log('Video reverse-loop initialized');
+    }
+
+    // Mandala video reverse looping
+    const mandalaVideo = document.querySelector('.mandala-video');
+    if (mandalaVideo) {
+        let playingForward = true;
+        let reverseInterval = null;
+
+        function playReverse() {
+            const fps = 24;
+            const interval = 1000 / fps;
+            
+            reverseInterval = setInterval(() => {
+                if (mandalaVideo.currentTime <= 0.1) {
+                    clearInterval(reverseInterval);
+                    reverseInterval = null;
+                    playingForward = true;
+                    mandalaVideo.currentTime = 0;
+                    mandalaVideo.play();
+                } else {
+                    mandalaVideo.currentTime -= interval / 1000;
+                }
+            }, interval);
+        }
+
+        mandalaVideo.addEventListener('ended', () => {
+            if (playingForward) {
+                playingForward = false;
+                playReverse();
+            }
+        });
+
+        console.log('Mandala video reverse-loop initialized');
     }
 }); 
 

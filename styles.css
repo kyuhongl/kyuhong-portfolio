@@ -602,6 +602,13 @@ body.light-mode .theme-toggle:hover {
         rgba(0, 0, 0, 0.1) 100%);
 }
 
+.card-7 {
+    background: linear-gradient(135deg, 
+        rgba(128, 0, 128, 0.15) 0%, 
+        rgba(255, 255, 255, 0.05) 50%, 
+        rgba(0, 0, 0, 0.1) 100%);
+}
+
 
 .museum-card:hover {
     border-color: rgba(255, 255, 255, 0.3);
