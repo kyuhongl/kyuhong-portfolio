@@ -96,7 +96,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
-    console.log('Section toggle and project filtering initialized');
 
     const projectLinks = {
         'card-1': 'https://kyuhong.com',
@@ -169,7 +168,6 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
 
-        console.log('Video reverse-loop initialized');
     }
 
     // Mandala video reverse looping
@@ -202,7 +200,6 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
 
-        console.log('Mandala video reverse-loop initialized');
     }
 }); 
 
@@ -239,6 +236,6 @@ document.addEventListener('DOMContentLoaded', () => {
         themeIcon.querySelector('path').setAttribute('d', sunPath);
         localStorage.setItem('theme', 'dark');
     }
-    
-    console.log('Theme toggle initialized. Current theme:', savedTheme || 'dark');
+
+    // console.log('Theme toggle initialized. Current theme:', savedTheme || 'dark');
 }); 
