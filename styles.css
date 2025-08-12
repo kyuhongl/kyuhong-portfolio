@@ -179,12 +179,9 @@ body.light-mode .museum-card:hover .tag {
     color: rgba(0, 0, 0, 0.75);
 }
 
-@media (max-width: 768px) {
-    body.light-mode .sidebar {
-        border-bottom: 1px solid rgba(0, 0, 0, 0.1);
-    }
+body.light-mode .sidebar {
+    border-bottom: 1px solid rgba(0, 0, 0, 0.1);
 }
-
 
 .theme-toggle {
     position: fixed;
@@ -223,8 +220,6 @@ body.light-mode .theme-toggle:hover {
     background: rgba(0, 0, 0, 0.15);
     border-color: rgba(0, 0, 0, 0.3);
 }
-
-
 
 .container {
     display: flex;
@@ -287,7 +282,6 @@ body.light-mode .theme-toggle:hover {
     color: rgba(255, 255, 255, 0.9);
 }
 
-
 .social-links {
     display: flex;
     gap: 16px;
@@ -322,22 +316,18 @@ body.light-mode .theme-toggle:hover {
     height: 18px;
 }
 
-
 .main-content {
     flex: 1;
     padding: 20px;
     overflow-y: auto;
     height: 100vh;
-    /* Hide scrollbar */
-    scrollbar-width: none; /* Firefox */
-    -ms-overflow-style: none; /* Internet Explorer 10+ */
+    scrollbar-width: none;
+    -ms-overflow-style: none;
 }
 
-/* Hide scrollbar for WebKit browsers (Chrome, Safari, Edge) */
 .main-content::-webkit-scrollbar {
     display: none;
 }
-
 
 .section-header {
     position: relative;
@@ -354,7 +344,6 @@ body.light-mode .theme-toggle:hover {
     margin: 0;
     text-align: left;
 }
-
 
 .section-toggle {
     position: absolute;
@@ -393,7 +382,6 @@ body.light-mode .theme-toggle:hover {
     width: 50px;
     left: 0;
 }
-
 
 .filter-container {
     margin-bottom: 30px;
@@ -454,7 +442,6 @@ body.light-mode .theme-toggle:hover {
         gap: 40px;
     }
 }
-
 
 .experience-timeline {
     max-width: 800px;
@@ -561,10 +548,8 @@ body.light-mode .theme-toggle:hover {
     gap: 6px;
 }
 
-
-
 .museum-card {
-    aspect-ratio: 2/3; /* Changed from 3/4 to 2/3 for skinnier cards */
+    aspect-ratio: 2/3;
     border-radius: 5px;
     position: relative;
     cursor: pointer;
@@ -574,7 +559,6 @@ body.light-mode .theme-toggle:hover {
     overflow: hidden;
     will-change: transform;
 }
-
 
 .card-1 {
     background: linear-gradient(135deg, 
@@ -625,7 +609,6 @@ body.light-mode .theme-toggle:hover {
         rgba(0, 0, 0, 0.1) 100%);
 }
 
-
 .museum-card:hover {
     border-color: rgba(255, 255, 255, 0.3);
     transition: border-color 0.3s ease;
@@ -634,7 +617,6 @@ body.light-mode .theme-toggle:hover {
 .museum-card:active {
     transform: translateY(1px);
 }
-
 
 .card-content {
     display: flex;
@@ -652,14 +634,12 @@ body.light-mode .theme-toggle:hover {
     transition: opacity 0.3s ease;
 }
 
-
 .height-field-video {
     width: 100%;
     height: 60%;
     object-fit: cover;
     border-radius: 5px 5px 0 0;
 }
-
 
 .factcheck-icon {
     display: flex;
@@ -684,7 +664,6 @@ body.light-mode .theme-toggle:hover {
     opacity: 1;
     transform: scale(1.05);
 }
-
 
 .card-3 .card-image {
     image-rendering: pixelated;
@@ -744,7 +723,6 @@ body.light-mode .theme-toggle:hover {
     color: rgba(255, 255, 255, 0.8);
 }
 
-
 .card-tags {
     display: flex;
     flex-wrap: wrap;
@@ -768,13 +746,9 @@ body.light-mode .theme-toggle:hover {
     color: rgba(255, 255, 255, 0.75);
 }
 
-
 .museum-card.hidden {
     display: none;
 }
-
-
-
 
 .orbs-container {
     position: fixed;
@@ -869,63 +843,58 @@ body.light-mode .orb-2 {
         transform: translate(0, 0) rotate(360deg) scale(1);
     }
 } 
+
 b {
     font-weight: 500;
 }
 
-
-/* @media (max-width: 1024px) {
+@media (max-width: 768px) {
+    body.light-mode .sidebar {
+        border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+    }
+    
     .container {
-        padding: 0 30px;
-    }
-    
-    .sidebar {
-        max-width: 500px;
-        padding: 30px 20px 20px 20px;
-    }
-    
-    .museum-grid {
-        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-        gap: 25px;
-    }
-    
-    .main-content {
-        padding: 20px 15px;
-        max-width: 900px;
-    }
-} */
-
-
-/* @media (max-width: 768px) {
-    .container {
+        flex-direction: column;
         padding: 0 20px;
         max-width: 100%;
+        min-height: 100vh;
     }
     
     .sidebar {
+        flex: none;
+        width: 100%;
         max-width: 100%;
         padding: 20px;
         border-bottom: 1px solid rgba(255, 255, 255, 0.1);
         text-align: center;
+        position: relative;
+    }
+
+    .sidebar::after {
+        display: none;
     }
     
     .name {
         font-size: 18px;
         margin-bottom: 20px;
         padding-bottom: 20px;
+        text-align: center;
     }
     
     .bio {
         font-size: 14px;
         margin-bottom: 20px;
+        text-align: center;
     }
     
     .social-links {
+        position: static;
         justify-content: center;
         margin-top: 20px;
     }
     
     .main-content {
+        flex: 1;
         padding: 20px;
         height: auto;
         overflow-y: visible;
@@ -933,18 +902,20 @@ b {
     }
     
     .museum-grid {
-        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
         gap: 20px;
     }
     
     .section-header {
+        padding-top: 20px;
         flex-direction: column;
         gap: 16px;
         align-items: flex-start;
-        padding-bottom: 40px;
+        padding-bottom: 30px;
     }
     
     .section-toggle {
+        position: static;
         gap: 20px;
     }
     
@@ -977,10 +948,9 @@ b {
     .name, .section-title {
         font-size: 18px;
     }
-} */
+}
 
-
-/* @media (max-width: 600px) {
+@media (max-width: 600px) {
     .container {
         padding: 0 15px;
     }
@@ -994,7 +964,7 @@ b {
     }
     
     .museum-grid {
-        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
         gap: 15px;
     }
     
@@ -1015,7 +985,7 @@ b {
     }
     
     .section-header {
-        padding-bottom: 30px;
+        padding-bottom: 25px;
     }
     
     .filter-container {
@@ -1045,10 +1015,9 @@ b {
     .timeline-description p {
         font-size: 13px;
     }
-} */
+}
 
-
-/* @media (max-width: 480px) {
+@media (max-width: 480px) {
     .sidebar {
         padding: 15px;
     }
@@ -1159,10 +1128,9 @@ b {
     .timeline-period {
         font-size: 11px;
     }
-} */
+}
 
-
-/* @media (max-width: 375px) {
+@media (max-width: 375px) {
     .sidebar {
         padding: 12px;
     }
@@ -1202,9 +1170,9 @@ b {
         padding: 3px 8px;
         font-size: 9px;
     }
-} */
+}
 
-/* @media (max-width: 320px) {
+@media (max-width: 320px) {
     .container {
         min-width: 320px;
     }
@@ -1250,7 +1218,7 @@ b {
         width: 16px;
         height: 16px;
     }
-} */
+}
         
 .museum-card,
 .timeline-item,
