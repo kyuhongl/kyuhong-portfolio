@@ -98,18 +98,21 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
     const projectLinks = {
-        'card-1': 'https://kyuhong.com',
+        'card-1': 'spiral.html',
         'card-2': 'https://github.com/kyuhongl/opengl-rendering-portfolio',
         'card-3': 'https://kyuhongl.github.io/nlp-to-glsl/',
         'card-4': 'https://github.com/kyuhongl/godot-firebase-multiplayer',
         'card-5': 'https://github.com/kyuhongl/fact-check-final',
         'card-6': 'https://kyuhongl.github.io/connections-korean/',
+        'card-7': 'nvidia-omniverse.html',
         
         'exp-card-1': '#',
         'exp-card-2': '#',
         'exp-card-3': '#',
         'exp-card-4': '#'
     };
+
+
 
     const allClickableItems = document.querySelectorAll('.museum-card, .timeline-item');
     
@@ -130,13 +133,21 @@ document.addEventListener('DOMContentLoaded', () => {
             if (itemKey && projectLinks[itemKey]) {
                 const url = projectLinks[itemKey];
                 if (url !== '#') {
-                    window.open(url, '_blank');
+                    if (url.endsWith('.html')) {
+                        // Navigate to local page
+                        window.location.href = url;
+                    } else {
+                        // Open external link in new tab
+                        window.open(url, '_blank');
+                    }
                 } else {
                     console.log(`No URL set for ${itemKey}`);
                 }
             }
         });
     });
+
+
 
 
     const video = document.querySelector('.height-field-video');
