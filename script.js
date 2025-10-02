@@ -1,4 +1,18 @@
 document.addEventListener('DOMContentLoaded', () => {
+    // Simple partial include loader: fetch content into elements with data-include
+    const includeTargets = document.querySelectorAll('[data-include]');
+    includeTargets.forEach(async (el) => {
+        const url = el.getAttribute('data-include');
+        if (!url) return;
+        try {
+            const res = await fetch(url, { cache: 'no-cache' });
+            if (!res.ok) throw new Error('Failed to load ' + url);
+            const html = await res.text();
+            el.innerHTML = html;
+        } catch (e) {
+            console.error('Include load error:', e);
+        }
+    });
     const orbs = document.querySelectorAll('.orb');
     
     function addRandomDrift() {
@@ -105,11 +119,14 @@ document.addEventListener('DOMContentLoaded', () => {
         'card-5': 'https://github.com/kyuhongl/fact-check-final',
         'card-6': 'https://kyuhongl.github.io/connections-korean/',
         'card-7': 'nvidia-omniverse.html',
+        'card-8': 'https://github.com/kyuhongl/dla-simulation',
         
         'exp-card-1': '#',
         'exp-card-2': '#',
         'exp-card-3': '#',
-        'exp-card-4': '#'
+        'exp-card-4': '#',
+        'exp-card-5': '#',
+        'exp-card-6': '#'
     };
 
 
@@ -205,6 +222,38 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         mandalaVideo.addEventListener('ended', () => {
+            if (playingForward) {
+                playingForward = false;
+                playReverse();
+            }
+        });
+
+    }
+
+    // DLA video reverse looping
+    const dlaVideo = document.querySelector('.dla-video');
+    if (dlaVideo) {
+        let playingForward = true;
+        let reverseInterval = null;
+
+        function playReverse() {
+            const fps = 24;
+            const interval = 1000 / fps;
+            
+            reverseInterval = setInterval(() => {
+                if (dlaVideo.currentTime <= 0.1) {
+                    clearInterval(reverseInterval);
+                    reverseInterval = null;
+                    playingForward = true;
+                    dlaVideo.currentTime = 0;
+                    dlaVideo.play();
+                } else {
+                    dlaVideo.currentTime -= interval / 1000;
+                }
+            }, interval);
+        }
+
+        dlaVideo.addEventListener('ended', () => {
             if (playingForward) {
                 playingForward = false;
                 playReverse();
