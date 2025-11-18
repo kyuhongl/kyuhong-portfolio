@@ -298,4 +298,23 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // console.log('Theme toggle initialized. Current theme:', savedTheme || 'dark');
+});
+
+// Image cycling functionality
+document.addEventListener('DOMContentLoaded', function() {
+    const cyclingContainers = document.querySelectorAll('.card-image-cycling');
+    
+    cyclingContainers.forEach(container => {
+        const images = container.querySelectorAll('.cycling-image');
+        let currentIndex = 0;
+        
+        function cycleImages() {
+            images[currentIndex].classList.remove('active');
+            currentIndex = (currentIndex + 1) % images.length;
+            images[currentIndex].classList.add('active');
+        }
+        
+        // Change image every 3 seconds
+        setInterval(cycleImages, 3000);
+    });
 }); 

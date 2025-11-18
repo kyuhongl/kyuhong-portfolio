@@ -401,20 +401,21 @@ body.light-mode .theme-toggle:hover {
 .filter-tags {
     display: flex;
     flex-wrap: wrap;
-    gap: 8px;
+    gap: 5px;
 }
 
 .filter-tag {
     background: rgba(255, 255, 255, 0.08);
     border: 1px solid rgba(255, 255, 255, 0.15);
     color: rgba(255, 255, 255, 0.7);
-    padding: 3px 14px;
-    border-radius: 20px;
-    font-size: 12px;
+    padding: 3px 10px;
+    border-radius: 12px;
+    font-size: 10px;
     font-weight: 300;
     cursor: pointer;
     transition: all 0.2s ease;
     letter-spacing: -0.1px;
+    line-height: 1;
 }
 
 .filter-tag:hover {
@@ -634,6 +635,28 @@ body.light-mode .theme-toggle:hover {
     transition: opacity 0.3s ease;
 }
 
+.card-image-cycling {
+    position: relative;
+    width: 100%;
+    height: 60%;
+    border-radius: 5px 5px 0 0;
+    overflow: hidden;
+}
+
+.cycling-image {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    opacity: 0;
+    transition: opacity 1s ease-in-out;
+}
+
+.cycling-image.active {
+    opacity: 1;
+}
+
 .height-field-video {
     width: 100%;
     height: 60%;
@@ -711,8 +734,12 @@ body.light-mode .theme-toggle:hover {
     transition: color 0.2s ease;
 }
 
-.museum-card:hover .card-image {
+.museum-card:hover .card-image:not(.cycling-image) {
     opacity: 0.9;
+}
+
+.museum-card:hover .cycling-image.active {
+    opacity: 1;
 }
 
 .museum-card:hover .card-text h3 {
@@ -726,19 +753,20 @@ body.light-mode .theme-toggle:hover {
 .card-tags {
     display: flex;
     flex-wrap: wrap;
-    gap: 6px;
+    gap: 4px;
     margin-top: 12px;
 }
 
 .tag {
     background: rgba(255, 255, 255, 0.1);
     color: rgba(255, 255, 255, 0.6);
-    padding: 3px 8px;
-    border-radius: 12px;
-    font-size: 10px;
+    padding: 2px 6px;
+    border-radius: 6px;
+    font-size: 8px;
     font-weight: 300;
     letter-spacing: -0.05px;
     transition: all 0.2s ease;
+    line-height: 1;
 }
 
 .museum-card:hover .tag {
@@ -924,12 +952,12 @@ b {
     }
     
     .filter-tags {
-        gap: 6px;
+        gap: 4px;
     }
     
     .filter-tag {
-        padding: 5px 12px;
-        font-size: 11px;
+        padding: 3px 9px;
+        font-size: 9px;
     }
     
     .experience-timeline {
@@ -1071,8 +1099,8 @@ b {
     }
     
     .tag {
-        padding: 2px 6px;
-        font-size: 9px;
+        padding: 2px 5px;
+        font-size: 7px;
     }
     
     .section-title {
@@ -1088,8 +1116,8 @@ b {
     }
     
     .filter-tag {
-        padding: 4px 10px;
-        font-size: 10px;
+        padding: 3px 9px;
+        font-size: 9px;
     }
     
     .theme-toggle {
@@ -1163,12 +1191,12 @@ b {
     }
     
     .filter-tags {
-        gap: 4px;
+        gap: 3px;
     }
     
     .filter-tag {
         padding: 3px 8px;
-        font-size: 9px;
+        font-size: 8px;
     }
 }
 
@@ -1233,7 +1261,7 @@ b {
 
 .filter-tag,
 .toggle-option {
-    min-height: 28px;
+    min-height: 20px;
     min-width: auto;
     display: inline-flex;
     align-items: center;
