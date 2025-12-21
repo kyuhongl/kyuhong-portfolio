@@ -120,6 +120,7 @@ document.addEventListener('DOMContentLoaded', () => {
         'card-6': 'https://kyuhongl.github.io/connections-korean/',
         'card-7': 'nvidia-omniverse.html',
         'card-8': 'https://github.com/kyuhongl/dla-simulation',
+        'card-9': 'https://github.com/kyuhongl/open-frameworks-1',
         
         'exp-card-1': '#',
         'exp-card-2': '#',

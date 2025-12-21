@@ -619,6 +619,14 @@ body.light-mode .theme-toggle:hover {
     transform: translateY(1px);
 }
 
+.card-link {
+    display: block;
+    width: 100%;
+    height: 100%;
+    text-decoration: none;
+    color: inherit;
+}
+
 .card-content {
     display: flex;
     flex-direction: column;
