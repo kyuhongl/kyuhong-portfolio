@@ -1,321 +1,534 @@
 document.addEventListener('DOMContentLoaded', () => {
-    // Simple partial include loader: fetch content into elements with data-include
-    const includeTargets = document.querySelectorAll('[data-include]');
-    includeTargets.forEach(async (el) => {
-        const url = el.getAttribute('data-include');
-        if (!url) return;
-        try {
-            const res = await fetch(url, { cache: 'no-cache' });
-            if (!res.ok) throw new Error('Failed to load ' + url);
-            const html = await res.text();
-            el.innerHTML = html;
-        } catch (e) {
-            console.error('Include load error:', e);
-        }
-    });
-    const orbs = document.querySelectorAll('.orb');
-    
-    function addRandomDrift() {
-        orbs.forEach((orb, index) => {
-            const driftX = (Math.random() - 0.5) * 100;
-            const driftY = (Math.random() - 0.5) * 100;
-            const driftRotation = (Math.random() - 0.5) * 10;
-            
-            const currentTransform = orb.style.transform || '';
-            orb.style.transform = `translate(${driftX}px, ${driftY}px) rotate(${driftRotation}deg)`;
-            
-            setTimeout(() => {
-                orb.style.transform = '';
-            }, 8000 + Math.random() * 4000);
-        });
-    }
-    
-    setTimeout(addRandomDrift, 2000);
-    
-    setInterval(addRandomDrift, 12000 + Math.random() * 6000);
-    
+    const FORWARD_SRC = 'img/background.mp4';
+    const REVERSE_SRC = 'img/background-reversed.mp4';
+    const FORWARD = 'forward';
+    const REVERSE = 'reverse';
+    const HANDOFF_EPSILON = 1 / 120;
 
+    const forwardVideo = document.getElementById('bg-video-forward');
+    const reverseVideo = document.getElementById('bg-video-reverse');
 
+    if (!forwardVideo || !reverseVideo) return;
 
-    const toggleOptions = document.querySelectorAll('.toggle-option');
-    const slidingLine = document.querySelector('.sliding-line');
-    const museumGrid = document.querySelector('.museum-grid');
-    const experienceTimeline = document.querySelector('.experience-timeline');
-    const filterContainer = document.querySelector('.filter-container');
-    
-    let currentSection = 'projects';
-
-    function updateSlidingLine(activeOption) {
-        const optionRect = activeOption.getBoundingClientRect();
-        const containerRect = activeOption.parentElement.getBoundingClientRect();
-        const relativeLeft = optionRect.left - containerRect.left;
-        
-        slidingLine.style.left = `${relativeLeft}px`;
-        slidingLine.style.width = `${optionRect.width}px`;
-    }
-
-    toggleOptions.forEach(option => {
-        option.addEventListener('click', () => {
-            toggleOptions.forEach(o => o.classList.remove('active'));
-            option.classList.add('active');
-            
-            updateSlidingLine(option);
-
-            const section = option.getAttribute('data-section');
-            currentSection = section;
-
-            if (section === 'projects') {
-                museumGrid.style.display = 'grid';
-                experienceTimeline.style.display = 'none';
-                filterContainer.style.display = 'flex';
-            } else if (section === 'experience') {
-                museumGrid.style.display = 'none';
-                experienceTimeline.style.display = 'block';
-                filterContainer.style.display = 'none';
-            }
-        });
-    });
-
-    const activeOption = document.querySelector('.toggle-option.active');
-    if (activeOption) {
-        setTimeout(() => updateSlidingLine(activeOption), 100);
-    }
-
-    const filterTags = document.querySelectorAll('.filter-tag');
-    const museumCards = document.querySelectorAll('.museum-card');
-
-    filterTags.forEach(tag => {
-        tag.addEventListener('click', () => {
-            filterTags.forEach(t => t.classList.remove('active'));
-            tag.classList.add('active');
-
-            const selectedTag = tag.getAttribute('data-tag');
-
-            if (currentSection === 'projects') {
-                const projectCards = document.querySelectorAll('.museum-grid .museum-card');
-                
-                projectCards.forEach(card => {
-                    if (selectedTag === 'all') {
-                        card.classList.remove('hidden');
-                    } else {
-                        const cardTags = card.getAttribute('data-tags').split(',');
-                        if (cardTags.includes(selectedTag)) {
-                            card.classList.remove('hidden');
-                        } else {
-                            card.classList.add('hidden');
-                        }
-                    }
-                });
-            }
-        });
-    });
-
-
-    const projectLinks = {
-        'card-1': 'spiral.html',
-        'card-2': 'https://github.com/kyuhongl/opengl-rendering-portfolio',
-        'card-3': 'https://kyuhongl.github.io/nlp-to-glsl/',
-        'card-4': 'https://github.com/kyuhongl/godot-firebase-multiplayer',
-        'card-5': 'https://github.com/kyuhongl/fact-check-final',
-        'card-6': 'https://kyuhongl.github.io/connections-korean/',
-        'card-7': 'nvidia-omniverse.html',
-        'card-8': 'https://github.com/kyuhongl/dla-simulation',
-        'card-9': 'https://github.com/kyuhongl/open-frameworks-1',
-        
-        'exp-card-1': '#',
-        'exp-card-2': '#',
-        'exp-card-3': '#',
-        'exp-card-4': '#',
-        'exp-card-5': '#',
-        'exp-card-6': '#'
+    const videos = {
+        [FORWARD]: forwardVideo,
+        [REVERSE]: reverseVideo
     };
 
+    let activeDirection = FORWARD;
+    let started = false;
+    let isSwitching = false;
+    let monitorRafId = null;
 
+    function setupVideo(video, src) {
+        video.src = src;
+        video.muted = true;
+        video.playsInline = true;
+        video.preload = 'auto';
+        video.loop = false;
+        video.load();
+    }
 
-    const allClickableItems = document.querySelectorAll('.museum-card, .timeline-item');
-    
-    allClickableItems.forEach(item => {
-        item.addEventListener('click', (e) => {
-            e.preventDefault();
-            
-            const itemClasses = item.classList;
-            let itemKey = null;
-            
-            for (let className of itemClasses) {
-                if (className.startsWith('card-') || className.startsWith('exp-card-')) {
-                    itemKey = className;
-                    break;
-                }
+    function whenReady(video) {
+        return new Promise((resolve) => {
+            if (video.readyState >= 1 && Number.isFinite(video.duration) && video.duration > 0) {
+                resolve();
+                return;
             }
-            
-            if (itemKey && projectLinks[itemKey]) {
-                const url = projectLinks[itemKey];
-                if (url !== '#') {
-                    if (url.endsWith('.html')) {
-                        // Navigate to local page
-                        window.location.href = url;
-                    } else {
-                        // Open external link in new tab
-                        window.open(url, '_blank');
-                    }
-                } else {
-                    console.log(`No URL set for ${itemKey}`);
-                }
-            }
+            video.addEventListener('loadedmetadata', resolve, { once: true });
         });
+    }
+
+    function setActiveVisual(activeVideo, inactiveVideo) {
+        activeVideo.classList.add('is-active');
+        inactiveVideo.classList.remove('is-active');
+    }
+
+    function swapDirection() {
+        if (isSwitching) return;
+        isSwitching = true;
+
+        const nextDirection = activeDirection === FORWARD ? REVERSE : FORWARD;
+        const currentVideo = videos[activeDirection];
+        const nextVideo = videos[nextDirection];
+
+        nextVideo.pause();
+        nextVideo.currentTime = 0;
+        nextVideo.play().then(() => {
+            setActiveVisual(nextVideo, currentVideo);
+            currentVideo.pause();
+            activeDirection = nextDirection;
+            isSwitching = false;
+        }).catch(() => {
+            isSwitching = false;
+        });
+    }
+
+    function monitorBoundary() {
+        if (!started) {
+            monitorRafId = requestAnimationFrame(monitorBoundary);
+            return;
+        }
+
+        if (!isSwitching && document.visibilityState === 'visible') {
+            const activeVideo = videos[activeDirection];
+            const duration = activeVideo.duration;
+            if (Number.isFinite(duration) && duration > 0) {
+                const remaining = duration - activeVideo.currentTime;
+                if (remaining <= HANDOFF_EPSILON) {
+                    swapDirection();
+                }
+            }
+        }
+
+        monitorRafId = requestAnimationFrame(monitorBoundary);
+    }
+
+    document.addEventListener('visibilitychange', () => {
+        if (!started) return;
+
+        const activeVideo = videos[activeDirection];
+        if (document.visibilityState === 'visible') {
+            activeVideo.play().catch(() => {});
+        } else {
+            activeVideo.pause();
+        }
     });
 
+    setupVideo(forwardVideo, FORWARD_SRC);
+    setupVideo(reverseVideo, REVERSE_SRC);
 
+    Promise.all([whenReady(forwardVideo), whenReady(reverseVideo)]).then(() => {
+        const startTime = forwardVideo.duration / 2;
+        forwardVideo.currentTime = startTime;
+        reverseVideo.currentTime = 0;
+        setActiveVisual(forwardVideo, reverseVideo);
+        started = true;
+        forwardVideo.play().catch(() => {});
+    });
 
-
-    const video = document.querySelector('.height-field-video');
-    if (video) {
-        let playingForward = true;
-        let reverseInterval = null;
-
-        function playReverse() {
-            const fps = 24;
-            const interval = 1000 / fps;
-            
-            reverseInterval = setInterval(() => {
-                if (video.currentTime <= 0.1) {
-                    clearInterval(reverseInterval);
-                    reverseInterval = null;
-                    playingForward = true;
-                    video.currentTime = 0;
-                    video.play();
-                } else {
-                    video.currentTime -= interval / 1000;
-                }
-            }, interval);
-        }
-
-        video.addEventListener('ended', () => {
-            if (playingForward) {
-                playingForward = false;
-                playReverse();
-            }
-        });
-
-    }
-
-    // Mandala video reverse looping
-    const mandalaVideo = document.querySelector('.mandala-video');
-    if (mandalaVideo) {
-        let playingForward = true;
-        let reverseInterval = null;
-
-        function playReverse() {
-            const fps = 24;
-            const interval = 1000 / fps;
-            
-            reverseInterval = setInterval(() => {
-                if (mandalaVideo.currentTime <= 0.1) {
-                    clearInterval(reverseInterval);
-                    reverseInterval = null;
-                    playingForward = true;
-                    mandalaVideo.currentTime = 0;
-                    mandalaVideo.play();
-                } else {
-                    mandalaVideo.currentTime -= interval / 1000;
-                }
-            }, interval);
-        }
-
-        mandalaVideo.addEventListener('ended', () => {
-            if (playingForward) {
-                playingForward = false;
-                playReverse();
-            }
-        });
-
-    }
-
-    // DLA video reverse looping
-    const dlaVideo = document.querySelector('.dla-video');
-    if (dlaVideo) {
-        let playingForward = true;
-        let reverseInterval = null;
-
-        function playReverse() {
-            const fps = 24;
-            const interval = 1000 / fps;
-            
-            reverseInterval = setInterval(() => {
-                if (dlaVideo.currentTime <= 0.1) {
-                    clearInterval(reverseInterval);
-                    reverseInterval = null;
-                    playingForward = true;
-                    dlaVideo.currentTime = 0;
-                    dlaVideo.play();
-                } else {
-                    dlaVideo.currentTime -= interval / 1000;
-                }
-            }, interval);
-        }
-
-        dlaVideo.addEventListener('ended', () => {
-            if (playingForward) {
-                playingForward = false;
-                playReverse();
-            }
-        });
-
-    }
-}); 
-
-function toggleTheme() {
-    const body = document.body;
-    const themeIcon = document.getElementById('theme-icon');
-    
-    const sunPath = 'M12 17.5C14.485 17.5 16.5 15.485 16.5 13C16.5 10.515 14.485 8.5 12 8.5C9.515 8.5 7.5 10.515 7.5 13C7.5 15.485 9.515 17.5 12 17.5ZM12 7C12.2761 7 12.5 6.77614 12.5 6.5V3.5C12.5 3.22386 12.2761 3 12 3C11.7239 3 11.5 3.22386 11.5 3.5V6.5C11.5 6.77614 11.7239 7 12 7ZM12 19C11.7239 19 11.5 19.2239 11.5 19.5V22.5C11.5 22.7761 11.7239 23 12 23C12.2761 23 12.5 22.7761 12.5 22.5V19.5C12.5 19.2239 12.2761 19 12 19ZM22.5 12.5H19.5C19.2239 12.5 19 12.2761 19 12C19 11.7239 19.2239 11.5 19.5 11.5H22.5C22.7761 11.5 23 11.7239 23 12C23 12.2761 22.7761 12.5 22.5 12.5ZM7 12C7 12.2761 6.77614 12.5 6.5 12.5H3.5C3.22386 12.5 3 12.2761 3 12C3 11.7239 3.22386 11.5 3.5 11.5H6.5C6.77614 11.5 7 11.7239 7 12ZM17.7 6.3C17.8944 6.10557 17.8944 5.78943 17.7 5.595C17.5056 5.40057 17.1894 5.40057 16.995 5.595L14.83 7.76C14.6356 7.95443 14.6356 8.27057 14.83 8.465C15.0244 8.65943 15.3406 8.65943 15.535 8.465L17.7 6.3ZM9.535 15.535C9.34057 15.3406 9.02443 15.3406 8.83 15.535L6.665 17.7C6.47057 17.8944 6.47057 18.2106 6.665 18.405C6.85943 18.5994 7.17557 18.5994 7.37 18.405L9.535 16.24C9.72943 16.0456 9.72943 15.7294 9.535 15.535ZM17.7 17.7C17.8944 17.8944 17.8944 18.2106 17.7 18.405C17.5056 18.5994 17.1894 18.5994 16.995 18.405L14.83 16.24C14.6356 16.0456 14.6356 15.7294 14.83 15.535C15.0244 15.3406 15.3406 15.3406 15.535 15.535L17.7 17.7ZM9.535 8.465C9.72943 8.65943 10.0456 8.65943 10.24 8.465C10.4344 8.27057 10.4344 7.95443 10.24 7.76L8.075 5.595C7.88057 5.40057 7.56443 5.40057 7.37 5.595C7.17557 5.78943 7.17557 6.10557 7.37 6.3L9.535 8.465Z';
-    const moonPath = 'M21.752 15.002A9.718 9.718 0 0118 15.75c-5.385 0-9.75-4.365-9.75-9.75 0-1.33.266-2.597.748-3.752A9.753 9.753 0 003 11.25C3 16.635 7.365 21 12.75 21a9.753 9.753 0 009.002-5.998z';
-    
-    if (body.classList.contains('light-mode')) {
-        body.classList.remove('light-mode');
-        themeIcon.querySelector('path').setAttribute('d', sunPath);
-        localStorage.setItem('theme', 'dark');
-    } else {
-        body.classList.add('light-mode');
-        themeIcon.querySelector('path').setAttribute('d', moonPath);
-        localStorage.setItem('theme', 'light');
-    }
-}
-
-document.addEventListener('DOMContentLoaded', () => {
-    const savedTheme = localStorage.getItem('theme');
-    const themeIcon = document.getElementById('theme-icon');
-    
-    const sunPath = 'M12 17.5C14.485 17.5 16.5 15.485 16.5 13C16.5 10.515 14.485 8.5 12 8.5C9.515 8.5 7.5 10.515 7.5 13C7.5 15.485 9.515 17.5 12 17.5ZM12 7C12.2761 7 12.5 6.77614 12.5 6.5V3.5C12.5 3.22386 12.2761 3 12 3C11.7239 3 11.5 3.22386 11.5 3.5V6.5C11.5 6.77614 11.7239 7 12 7ZM12 19C11.7239 19 11.5 19.2239 11.5 19.5V22.5C11.5 22.7761 11.7239 23 12 23C12.2761 23 12.5 22.7761 12.5 22.5V19.5C12.5 19.2239 12.2761 19 12 19ZM22.5 12.5H19.5C19.2239 12.5 19 12.2761 19 12C19 11.7239 19.2239 11.5 19.5 11.5H22.5C22.7761 11.5 23 11.7239 23 12C23 12.2761 22.7761 12.5 22.5 12.5ZM7 12C7 12.2761 6.77614 12.5 6.5 12.5H3.5C3.22386 12.5 3 12.2761 3 12C3 11.7239 3.22386 11.5 3.5 11.5H6.5C6.77614 11.5 7 11.7239 7 12ZM17.7 6.3C17.8944 6.10557 17.8944 5.78943 17.7 5.595C17.5056 5.40057 17.1894 5.40057 16.995 5.595L14.83 7.76C14.6356 7.95443 14.6356 8.27057 14.83 8.465C15.0244 8.65943 15.3406 8.65943 15.535 8.465L17.7 6.3ZM9.535 15.535C9.34057 15.3406 9.02443 15.3406 8.83 15.535L6.665 17.7C6.47057 17.8944 6.47057 18.2106 6.665 18.405C6.85943 18.5994 7.17557 18.5994 7.37 18.405L9.535 16.24C9.72943 16.0456 9.72943 15.7294 9.535 15.535ZM17.7 17.7C17.8944 17.8944 17.8944 18.2106 17.7 18.405C17.5056 18.5994 17.1894 18.5994 16.995 18.405L14.83 16.24C14.6356 16.0456 14.6356 15.7294 14.83 15.535C15.0244 15.3406 15.3406 15.3406 15.535 15.535L17.7 17.7ZM9.535 8.465C9.72943 8.65943 10.0456 8.65943 10.24 8.465C10.4344 8.27057 10.4344 7.95443 10.24 7.76L8.075 5.595C7.88057 5.40057 7.56443 5.40057 7.37 5.595C7.17557 5.78943 7.17557 6.10557 7.37 6.3L9.535 8.465Z';
-    const moonPath = 'M21.752 15.002A9.718 9.718 0 0118 15.75c-5.385 0-9.75-4.365-9.75-9.75 0-1.33.266-2.597.748-3.752A9.753 9.753 0 003 11.25C3 16.635 7.365 21 12.75 21a9.753 9.753 0 009.002-5.998z';
-    
-    if (savedTheme === 'light') {
-        document.body.classList.add('light-mode');
-        themeIcon.querySelector('path').setAttribute('d', moonPath);
-    } else {
-        document.body.classList.remove('light-mode');
-        themeIcon.querySelector('path').setAttribute('d', sunPath);
-        localStorage.setItem('theme', 'dark');
-    }
-
-    // console.log('Theme toggle initialized. Current theme:', savedTheme || 'dark');
+    monitorRafId = requestAnimationFrame(monitorBoundary);
 });
 
-// Image cycling functionality
-document.addEventListener('DOMContentLoaded', function() {
-    const cyclingContainers = document.querySelectorAll('.card-image-cycling');
-    
-    cyclingContainers.forEach(container => {
-        const images = container.querySelectorAll('.cycling-image');
-        let currentIndex = 0;
-        
-        function cycleImages() {
-            images[currentIndex].classList.remove('active');
-            currentIndex = (currentIndex + 1) % images.length;
-            images[currentIndex].classList.add('active');
+/* ─── CV Panel: Center-Scaled Sidebar with Hover L-Line ─── */
+(function () {
+    const NS = 'http://www.w3.org/2000/svg';
+    const MIN_SCALE = 0.6;
+    const MAX_SCALE = 1.0;
+    const MIN_OPACITY = 0.4;
+    const MAX_OPACITY = 1.0;
+    const MAX_BLUR = 0.0;
+    const BLUR_DEAD_ZONE = 40;
+    const FALLOFF_PX = 200;
+    const ANIM_DURATION_S = 2 / 1.5;
+    const CIRCLE_PAUSE_S = 0.35;
+    const CIRCLE_CYCLE_S = ANIM_DURATION_S + CIRCLE_PAUSE_S;
+    const DETAIL_BORDER_COLOR = 'rgba(0, 0, 0, 0.1)';
+    const LINE_INTO_CARD_PX = 8;
+
+    const cvList = document.getElementById('cv-list');
+    const svgEl = document.getElementById('cv-hover-svg');
+    const detailsRoot = document.getElementById('cv-details');
+    if (!cvList || !svgEl || !detailsRoot) return;
+
+    const items = cvList.querySelectorAll('.cv-item');
+    const details = detailsRoot.querySelectorAll('.cv-detail');
+
+    let pathEl = null;
+    let circleEl = null;
+    let hoveredItem = null;
+    let rafId = null;
+    let cursorX = 0;
+    let cursorY = 0;
+    let circleAnimId = null;
+    let circleStartTime = 0;
+
+    function lerp(a, b, t) {
+        return a + (b - a) * Math.max(0, Math.min(1, t));
+    }
+
+    function updateScales() {
+        const listRect = cvList.getBoundingClientRect();
+        const centerY = listRect.top + listRect.height / 2;
+
+        items.forEach((item) => {
+            const rect = item.getBoundingClientRect();
+            const itemCenterY = rect.top + rect.height / 2;
+            const dist = Math.abs(itemCenterY - centerY);
+            const t = Math.min(dist / FALLOFF_PX, 1);
+
+            const scale = lerp(MAX_SCALE, MIN_SCALE, t);
+            const opacity = lerp(MAX_OPACITY, MIN_OPACITY, t);
+            const blurT = Math.max(0, (dist - BLUR_DEAD_ZONE) / (FALLOFF_PX - BLUR_DEAD_ZONE));
+            const blur = lerp(0, MAX_BLUR, Math.min(blurT, 1));
+
+            if (scale > 0.99) {
+                item.style.transform = 'none';
+                item.style.willChange = 'auto';
+            } else {
+                item.style.transform = `scale(${scale})`;
+                item.style.willChange = 'transform, opacity, filter';
+            }
+            item.style.opacity = opacity;
+            item.style.filter = blur < 0.05 ? 'none' : `blur(${blur.toFixed(1)}px)`;
+        });
+    }
+
+    function showDetail(key) {
+        details.forEach((d) => {
+            d.classList.toggle('is-active', d.getAttribute('data-for') === key);
+        });
+    }
+
+    function hideDetail() {
+        details.forEach((d) => d.classList.remove('is-active'));
+    }
+
+    function ensureSVGElements() {
+        if (pathEl) return;
+
+        pathEl = document.createElementNS(NS, 'path');
+        pathEl.setAttribute('fill', 'none');
+        pathEl.setAttribute('stroke', DETAIL_BORDER_COLOR);
+        pathEl.setAttribute('stroke-width', '1');
+
+        circleEl = document.createElementNS(NS, 'circle');
+        circleEl.setAttribute('r', '5');
+        circleEl.setAttribute('fill', DETAIL_BORDER_COLOR);
+
+        svgEl.appendChild(pathEl);
+        svgEl.appendChild(circleEl);
+
+        circleStartTime = performance.now();
+        startCircleAnimation();
+    }
+
+    function destroySVGElements() {
+        if (circleAnimId) { cancelAnimationFrame(circleAnimId); circleAnimId = null; }
+        if (pathEl) { pathEl.remove(); pathEl = null; }
+        if (circleEl) { circleEl.remove(); circleEl = null; }
+    }
+
+    function getPointOnLLine(t, startX, startY, turnY, endX) {
+        const seg1Len = Math.abs(turnY - startY);
+        const seg2Len = Math.abs(endX - startX);
+        const totalLen = seg1Len + seg2Len;
+        if (totalLen === 0) return [startX, startY];
+
+        const dist = t * totalLen;
+        if (dist <= seg1Len) {
+            if (seg1Len === 0) return [startX, turnY];
+            const u = dist / seg1Len;
+            return [startX, startY + u * (turnY - startY)];
         }
-        
-        // Change image every 3 seconds
-        setInterval(cycleImages, 3000);
+        if (seg2Len === 0) return [endX, turnY];
+        const u = (dist - seg1Len) / seg2Len;
+        return [startX + u * (endX - startX), turnY];
+    }
+
+    function startCircleAnimation() {
+        function tick(now) {
+            if (!circleEl || !pathEl) return;
+
+            const elapsed = (now - circleStartTime) / 1000;
+            const phase = elapsed % CIRCLE_CYCLE_S;
+            const traveling = phase < ANIM_DURATION_S;
+            const t = traveling ? phase / ANIM_DURATION_S : 0;
+
+            const d = pathEl.getAttribute('d');
+            if (d) {
+                const nums = d.match(/-?[\d.]+/g);
+                if (nums && nums.length >= 6) {
+                    const startX = +nums[0], startY = +nums[1];
+                    const turnY = +nums[3];
+                    const endX = +nums[4];
+                    const [cx, cy] = getPointOnLLine(t, startX, startY, turnY, endX);
+                    circleEl.setAttribute('cx', cx);
+                    circleEl.setAttribute('cy', cy);
+                }
+            }
+
+            circleEl.setAttribute('opacity', traveling ? '1' : '0');
+
+            circleAnimId = requestAnimationFrame(tick);
+        }
+        circleAnimId = requestAnimationFrame(tick);
+    }
+
+    function updateLLine() {
+        if (!hoveredItem) return;
+
+        const panelRect = svgEl.closest('.cv-panel').getBoundingClientRect();
+        const detailsRect = detailsRoot.getBoundingClientRect();
+        const activeDetail = detailsRoot.querySelector('.cv-detail.is-active');
+
+        const localX = cursorX - panelRect.left;
+        const localY = cursorY - panelRect.top;
+
+        let lineY = localY - 40;
+
+        if (activeDetail) {
+            const topInDetails = panelRect.top + lineY - detailsRect.top;
+            activeDetail.style.top = `${topInDetails}px`;
+        }
+
+        let endX = detailsRect.right - panelRect.left;
+        if (activeDetail) {
+            const cardRect = activeDetail.getBoundingClientRect();
+            endX = cardRect.right - panelRect.left - LINE_INTO_CARD_PX;
+            const yTop = cardRect.top - panelRect.top;
+            const yBot = cardRect.bottom - panelRect.top;
+            lineY = Math.min(Math.max(lineY, yTop), yBot);
+        }
+
+        const d = `M${localX},${localY} L${localX},${lineY} L${endX},${lineY}`;
+
+        pathEl.setAttribute('d', d);
+
+        if (activeDetail) {
+            const topInDetails = panelRect.top + lineY - detailsRect.top;
+            activeDetail.style.top = `${topInDetails}px`;
+        }
+    }
+
+    function onItemMouseMove(e) {
+        cursorX = e.clientX;
+        cursorY = e.clientY;
+        if (!rafId) {
+            rafId = requestAnimationFrame(() => {
+                updateLLine();
+                rafId = null;
+            });
+        }
+    }
+
+    function onItemMouseEnter(e) {
+        const item = e.currentTarget;
+        hoveredItem = item;
+        cursorX = e.clientX;
+        cursorY = e.clientY;
+
+        const key = item.getAttribute('data-detail');
+        showDetail(key);
+        ensureSVGElements();
+        updateLLine();
+        requestAnimationFrame(() => {
+            requestAnimationFrame(() => scheduleDetailGlassRebuild());
+        });
+    }
+
+    function onItemMouseLeave() {
+        clearDetailGlass();
+        hoveredItem = null;
+        if (rafId) { cancelAnimationFrame(rafId); rafId = null; }
+        destroySVGElements();
+        hideDetail();
+    }
+
+    items.forEach((item) => {
+        item.addEventListener('mouseenter', onItemMouseEnter);
+        item.addEventListener('mousemove', onItemMouseMove);
+        item.addEventListener('mouseleave', onItemMouseLeave);
     });
-}); 
+
+    cvList.addEventListener('scroll', updateScales, { passive: true });
+    updateScales();
+
+    /* ─── CV detail panel: subtle liquid glass (SVG displacement + backdrop-filter) ─── */
+    const GLASS_SURFACES = {
+        convex_squircle: (x) => Math.pow(1 - Math.pow(1 - x, 4), 0.25),
+    };
+
+    function glassRefractionProfile(glassThickness, bezelWidth, heightFn, ior, samples) {
+        const eta = 1 / ior;
+        function refract(nx, ny) {
+            const dot = ny;
+            const k = 1 - eta * eta * (1 - dot * dot);
+            if (k < 0) return null;
+            const sq = Math.sqrt(k);
+            return [-(eta * dot + sq) * nx, eta - (eta * dot + sq) * ny];
+        }
+        const profile = new Float64Array(samples);
+        for (let i = 0; i < samples; i++) {
+            const x = i / samples;
+            const y = heightFn(x);
+            const dx = x < 1 ? 0.0001 : -0.0001;
+            const y2 = heightFn(x + dx);
+            const deriv = (y2 - y) / dx;
+            const mag = Math.sqrt(deriv * deriv + 1);
+            const ref = refract(-deriv / mag, -1 / mag);
+            if (!ref) { profile[i] = 0; continue; }
+            profile[i] = ref[0] * ((y * bezelWidth + glassThickness) / ref[1]);
+        }
+        return profile;
+    }
+
+    function glassDisplacementMap(w, h, radius, bezelWidth, profile, maxDisp) {
+        const c = document.createElement('canvas');
+        c.width = w;
+        c.height = h;
+        const ctx = c.getContext('2d');
+        const img = ctx.createImageData(w, h);
+        const d = img.data;
+        for (let i = 0; i < d.length; i += 4) {
+            d[i] = 128;
+            d[i + 1] = 128;
+            d[i + 2] = 0;
+            d[i + 3] = 255;
+        }
+        const r = radius;
+        const rSq = r * r;
+        const r1Sq = (r + 1) ** 2;
+        const rBSq = Math.max(r - bezelWidth, 0) ** 2;
+        const wB = w - r * 2;
+        const hB = h - r * 2;
+        const S = profile.length;
+        for (let y1 = 0; y1 < h; y1++) {
+            for (let x1 = 0; x1 < w; x1++) {
+                const x = x1 < r ? x1 - r : x1 >= w - r ? x1 - r - wB : 0;
+                const y = y1 < r ? y1 - r : y1 >= h - r ? y1 - r - hB : 0;
+                const dSq = x * x + y * y;
+                if (dSq > r1Sq || dSq < rBSq) continue;
+                const dist = Math.sqrt(dSq);
+                const fromSide = r - dist;
+                const op = dSq < rSq ? 1 : 1 - (dist - Math.sqrt(rSq)) / (Math.sqrt(r1Sq) - Math.sqrt(rSq));
+                if (op <= 0 || dist === 0) continue;
+                const cos = x / dist;
+                const sin = y / dist;
+                const bi = Math.min(((fromSide / bezelWidth) * S) | 0, S - 1);
+                const disp = profile[bi] || 0;
+                const dX = (-cos * disp) / maxDisp;
+                const dY = (-sin * disp) / maxDisp;
+                const idx = (y1 * w + x1) * 4;
+                d[idx] = (128 + dX * 127 * op + 0.5) | 0;
+                d[idx + 1] = (128 + dY * 127 * op + 0.5) | 0;
+            }
+        }
+        ctx.putImageData(img, 0, 0);
+        return c.toDataURL();
+    }
+
+    function glassSpecularMap(w, h, radius, bezelWidth, angle) {
+        angle = angle != null ? angle : Math.PI / 3;
+        const c = document.createElement('canvas');
+        c.width = w;
+        c.height = h;
+        const ctx = c.getContext('2d');
+        const img = ctx.createImageData(w, h);
+        const d = img.data;
+        d.fill(0);
+        const r = radius;
+        const rSq = r * r;
+        const r1Sq = (r + 1) ** 2;
+        const rBSq = Math.max(r - bezelWidth, 0) ** 2;
+        const wB = w - r * 2;
+        const hB = h - r * 2;
+        const sv = [Math.cos(angle), Math.sin(angle)];
+        for (let y1 = 0; y1 < h; y1++) {
+            for (let x1 = 0; x1 < w; x1++) {
+                const x = x1 < r ? x1 - r : x1 >= w - r ? x1 - r - wB : 0;
+                const y = y1 < r ? y1 - r : y1 >= h - r ? y1 - r - hB : 0;
+                const dSq = x * x + y * y;
+                if (dSq > r1Sq || dSq < rBSq) continue;
+                const dist = Math.sqrt(dSq);
+                const fromSide = r - dist;
+                const op = dSq < rSq ? 1 : 1 - (dist - Math.sqrt(rSq)) / (Math.sqrt(r1Sq) - Math.sqrt(rSq));
+                if (op <= 0 || dist === 0) continue;
+                const cos = x / dist;
+                const sin = -y / dist;
+                const dot = Math.abs(cos * sv[0] + sin * sv[1]);
+                const edge = Math.sqrt(Math.max(0, 1 - (1 - fromSide) ** 2));
+                const coeff = dot * edge;
+                const col = (255 * coeff) | 0;
+                const alpha = (col * coeff * op) | 0;
+                const idx = (y1 * w + x1) * 4;
+                d[idx] = col;
+                d[idx + 1] = col;
+                d[idx + 2] = col;
+                d[idx + 3] = alpha;
+            }
+        }
+        ctx.putImageData(img, 0, 0);
+        return c.toDataURL();
+    }
+
+    let detailGlassTimer = null;
+    let detailGlassRo = null;
+
+    function clearDetailGlass() {
+        const defs = document.getElementById('cv-glass-defs');
+        if (defs) defs.innerHTML = '';
+        if (detailGlassRo) {
+            detailGlassRo.disconnect();
+            detailGlassRo = null;
+        }
+    }
+
+    function buildDetailGlass() {
+        const defs = document.getElementById('cv-glass-defs');
+        const active = detailsRoot.querySelector('.cv-detail.is-active');
+        if (!defs || !active) return;
+
+        const w = Math.round(active.offsetWidth);
+        const h = Math.round(active.offsetHeight);
+        if (w < 2 || h < 2) return;
+
+        const radius = 10;
+        const glassThick = 5;
+        const bezelW = Math.min(20, radius - 1, Math.min(w, h) / 2 - 1);
+        const ior = 2.35;
+        const scaleRatio = 0.56;
+        const blurAmt = 0.48;
+        const specOpacity = 0.2;
+        const specSat = 2.2;
+        const samples = 72;
+
+        const heightFn = GLASS_SURFACES.convex_squircle;
+        const profile = glassRefractionProfile(glassThick, bezelW, heightFn, ior, samples);
+        const maxDisp = Math.max(...Array.from(profile).map(Math.abs)) || 1;
+        const dispUrl = glassDisplacementMap(w, h, radius, bezelW, profile, maxDisp);
+        const specUrl = glassSpecularMap(w, h, radius, bezelW * 2.2);
+        const scale = maxDisp * scaleRatio;
+
+        defs.innerHTML = `
+            <filter id="cv-detail-glass-filter" x="0%" y="0%" width="100%" height="100%">
+                <feGaussianBlur in="SourceGraphic" stdDeviation="${blurAmt}" result="blurred_source" />
+                <feImage href="${dispUrl}" x="0" y="0" width="${w}" height="${h}" result="disp_map" />
+                <feDisplacementMap in="blurred_source" in2="disp_map"
+                    scale="${scale}" xChannelSelector="R" yChannelSelector="G"
+                    result="displaced" />
+                <feColorMatrix in="displaced" type="saturate" values="${specSat}" result="displaced_sat" />
+                <feImage href="${specUrl}" x="0" y="0" width="${w}" height="${h}" result="spec_layer" />
+                <feComposite in="displaced_sat" in2="spec_layer" operator="in" result="spec_masked" />
+                <feComponentTransfer in="spec_layer" result="spec_faded">
+                    <feFuncA type="linear" slope="${specOpacity}" />
+                </feComponentTransfer>
+                <feBlend in="spec_masked" in2="displaced" mode="normal" result="with_sat" />
+                <feBlend in="spec_faded" in2="with_sat" mode="normal" />
+            </filter>
+        `;
+    }
+
+    function scheduleDetailGlassRebuild() {
+        clearTimeout(detailGlassTimer);
+        detailGlassTimer = setTimeout(() => {
+            requestAnimationFrame(() => {
+                buildDetailGlass();
+                const active = detailsRoot.querySelector('.cv-detail.is-active');
+                if (active) {
+                    if (detailGlassRo) detailGlassRo.disconnect();
+                    detailGlassRo = new ResizeObserver(() => scheduleDetailGlassRebuild());
+                    detailGlassRo.observe(active);
+                }
+            });
+        }, 40);
+    }
+
+    let glassWinTimer;
+    window.addEventListener('resize', () => {
+        clearTimeout(glassWinTimer);
+        glassWinTimer = setTimeout(() => {
+            if (detailsRoot.querySelector('.cv-detail.is-active')) scheduleDetailGlassRebuild();
+        }, 120);
+    });
+})();
