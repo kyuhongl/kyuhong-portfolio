@@ -68,6 +68,7 @@ body::-webkit-scrollbar {
     left: 0;
     top: 0;
     width: 350px;
+    max-width: 100vw;
     height: 100vh;
     padding: 40px 30px;
     display: flex;
@@ -101,6 +102,8 @@ body::-webkit-scrollbar {
     font-weight: 300;
     letter-spacing: -0.1px;
     text-align: right;
+    overflow-wrap: break-word;
+    word-break: break-word;
 }
 
 .bio p {
@@ -742,14 +745,16 @@ b {
 /* ─── Scrollable Item List (mirrors .sidebar dimensions) ─── */
 .cv-list {
     width: 350px;
+    min-width: 0;
     flex-shrink: 0;
     height: 100%;
     overflow-y: auto;
+    overflow-x: hidden;
     scrollbar-width: none;
     -ms-overflow-style: none;
     display: flex;
     flex-direction: column;
-    align-items: flex-start;
+    align-items: stretch;
     padding: 0 30px;
 }
 
@@ -769,6 +774,8 @@ b {
 
 .cv-item {
     flex-shrink: 0;
+    width: 100%;
+    min-width: 0;
     padding: 14px 0;
     text-align: left;
     cursor: pointer;
@@ -797,6 +804,8 @@ b {
     color: rgba(0, 0, 0, 0.4);
     letter-spacing: 0.01em;
     margin-top: 2px;
+    overflow-wrap: break-word;
+    word-break: break-word;
 }
 
 /* ─── Hover SVG Overlay ─── */
@@ -813,6 +822,7 @@ b {
 /* ─── Details Panel (left side, over video) ─── */
 .cv-details {
     width: 280px;
+    min-width: 0;
     flex-shrink: 0;
     position: relative;
     height: 100%;
@@ -824,7 +834,10 @@ b {
     position: absolute;
     left: 30px;
     right: 16px;
+    min-width: 0;
     isolation: isolate;
+    overflow-wrap: break-word;
+    word-break: break-word;
     background: rgba(255, 255, 255, 0.44);
     border: 1px solid rgba(0, 0, 0, 0.1);
     border-radius: 10px;
