@@ -36,6 +36,105 @@ document.addEventListener('DOMContentLoaded', () => {
                 return;
             }
             video.addEventListener('loadedmetadata', resolve, { once: true });
+            video.addEventListener('error', resolve, { once: true });
+        });
+    }
+
+    const loadingEl = document.getElementById('video-loading');
+    const loadingCanvas = document.getElementById('video-loading-canvas');
+    const videoBg = forwardVideo.closest('.video-bg');
+
+    const LOADING_CSS_PX = 112;
+    let loadingSwirlRafId = null;
+
+    function stopLoadingSwirl() {
+        if (loadingSwirlRafId != null) {
+            cancelAnimationFrame(loadingSwirlRafId);
+            loadingSwirlRafId = null;
+        }
+    }
+
+    function startLoadingSwirl() {
+        if (!loadingCanvas) return;
+        const ctx = loadingCanvas.getContext('2d');
+        if (!ctx) return;
+
+        const dpr = Math.min(window.devicePixelRatio || 1, 2);
+        loadingCanvas.style.width = `${LOADING_CSS_PX}px`;
+        loadingCanvas.style.height = `${LOADING_CSS_PX}px`;
+        loadingCanvas.width = Math.round(LOADING_CSS_PX * dpr);
+        loadingCanvas.height = Math.round(LOADING_CSS_PX * dpr);
+
+        const n = 120;
+        const particles = [];
+        for (let i = 0; i < n; i++) {
+            const r = 5 + Math.random() ** 0.65 * 46;
+            particles.push({
+                r,
+                phase: Math.random() * Math.PI * 2,
+                spinSign: Math.random() < 0.94 ? 1 : -1,
+                size: 0.55 + Math.random() * 1.05,
+                alpha: 0.18 + Math.random() * 0.42,
+            });
+        }
+
+        const cx = LOADING_CSS_PX / 2;
+        const cy = LOADING_CSS_PX / 2;
+        const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+        function drawFrame(t) {
+            ctx.setTransform(1, 0, 0, 1, 0, 0);
+            ctx.clearRect(0, 0, loadingCanvas.width, loadingCanvas.height);
+            ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+            const global = t * 0.38;
+            for (const p of particles) {
+                const omega = (1.05 / Math.sqrt(Math.max(p.r, 2.5))) * p.spinSign;
+                const wobble = Math.sin(t * 1.55 + p.phase * 3.1) * 2.4;
+                const rr = p.r + wobble;
+                const th = p.phase + t * omega * 4.8 + global;
+                const x = cx + Math.cos(th) * rr;
+                const y = cy + Math.sin(th) * rr;
+                ctx.beginPath();
+                ctx.arc(x, y, p.size, 0, Math.PI * 2);
+                ctx.fillStyle = `rgba(0, 0, 0, ${p.alpha})`;
+                ctx.fill();
+            }
+        }
+
+        const t0 = performance.now();
+        function tick(now) {
+            if (!loadingEl || loadingEl.classList.contains('is-done')) {
+                loadingSwirlRafId = null;
+                return;
+            }
+            drawFrame((now - t0) / 1000);
+            loadingSwirlRafId = requestAnimationFrame(tick);
+        }
+
+        if (reduceMotion) {
+            drawFrame(0);
+            return;
+        }
+
+        loadingSwirlRafId = requestAnimationFrame(tick);
+    }
+
+    function hideVideoLoading() {
+        stopLoadingSwirl();
+        if (!loadingEl) return;
+        loadingEl.classList.add('is-done');
+        loadingEl.setAttribute('aria-busy', 'false');
+    }
+
+    startLoadingSwirl();
+
+    function revealVideoBg() {
+        if (!videoBg) return;
+        requestAnimationFrame(() => {
+            requestAnimationFrame(() => {
+                videoBg.classList.add('is-revealed');
+            });
         });
     }
 
@@ -98,14 +197,20 @@ document.addEventListener('DOMContentLoaded', () => {
     setupVideo(forwardVideo, FORWARD_SRC);
     setupVideo(reverseVideo, REVERSE_SRC);
 
-    Promise.all([whenReady(forwardVideo), whenReady(reverseVideo)]).then(() => {
-        const startTime = forwardVideo.duration / 2;
-        forwardVideo.currentTime = startTime;
-        reverseVideo.currentTime = 0;
-        setActiveVisual(forwardVideo, reverseVideo);
-        started = true;
-        forwardVideo.play().catch(() => {});
-    });
+    Promise.all([whenReady(forwardVideo), whenReady(reverseVideo)])
+        .then(() => {
+            hideVideoLoading();
+            revealVideoBg();
+            const startTime = forwardVideo.duration / 2;
+            forwardVideo.currentTime = startTime;
+            reverseVideo.currentTime = 0;
+            setActiveVisual(forwardVideo, reverseVideo);
+            started = true;
+            forwardVideo.play().catch(() => {});
+        })
+        .catch(() => {
+            hideVideoLoading();
+        });
 
     monitorRafId = requestAnimationFrame(monitorBoundary);
 });
@@ -129,7 +234,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const cvList = document.getElementById('cv-list');
     const svgEl = document.getElementById('cv-hover-svg');
     const detailsRoot = document.getElementById('cv-details');
-    if (!cvList || !svgEl || !detailsRoot) return;
+    const cvPanel = cvList ? cvList.closest('.cv-panel') : null;
+    if (!cvList || !svgEl || !detailsRoot || !cvPanel) return;
 
     const items = cvList.querySelectorAll('.cv-item');
     const details = detailsRoot.querySelectorAll('.cv-detail');
@@ -333,6 +439,54 @@ document.addEventListener('DOMContentLoaded', () => {
 
     cvList.addEventListener('scroll', updateScales, { passive: true });
     updateScales();
+
+    /* Route wheel/trackpad to the CV list from video, details, gaps — not only the list strip.
+       Panel listener misses events whose target is under the cursor outside the panel (e.g. video). */
+    const sidebarEl = document.querySelector('.sidebar');
+
+    function wheelInnerScrollableFrom(el) {
+        let node = el;
+        while (node && node !== document.documentElement) {
+            if (node === cvList) return null;
+            const st = window.getComputedStyle(node);
+            const oy = st.overflowY;
+            if ((oy === 'auto' || oy === 'scroll') && node.scrollHeight > node.clientHeight + 1) {
+                return node;
+            }
+            node = node.parentElement;
+        }
+        return null;
+    }
+
+    function pointerOverSidebar(clientX, clientY) {
+        if (!sidebarEl) return false;
+        const r = sidebarEl.getBoundingClientRect();
+        return clientX >= r.left && clientX <= r.right && clientY >= r.top && clientY <= r.bottom;
+    }
+
+    document.addEventListener(
+        'wheel',
+        (e) => {
+            if (!window.matchMedia('(min-width: 769px)').matches) return;
+            if (pointerOverSidebar(e.clientX, e.clientY)) return;
+
+            if (cvList.contains(e.target)) return;
+
+            const inner = wheelInnerScrollableFrom(e.target);
+            if (inner) {
+                const dy = e.deltaY;
+                const roomAbove = inner.scrollTop > 0;
+                const roomBelow = inner.scrollTop + inner.clientHeight < inner.scrollHeight - 1;
+                if ((dy < 0 && roomAbove) || (dy > 0 && roomBelow)) return;
+            }
+
+            const maxScroll = cvList.scrollHeight - cvList.clientHeight;
+            if (maxScroll <= 0) return;
+            e.preventDefault();
+            cvList.scrollTop += e.deltaY;
+        },
+        { passive: false, capture: true }
+    );
 
     /* ─── CV detail panel: subtle liquid glass (SVG displacement + backdrop-filter) ─── */
     const GLASS_SURFACES = {

@@ -9,8 +9,13 @@
 </head>
 <body>
     <div class="video-bg">
-        <video id="bg-video-forward" class="bg-video is-active" muted playsinline preload="auto"></video>
-        <video id="bg-video-reverse" class="bg-video" muted playsinline preload="auto"></video>
+        <div class="video-bg-media">
+            <video id="bg-video-forward" class="bg-video is-active" muted playsinline preload="auto"></video>
+            <video id="bg-video-reverse" class="bg-video" muted playsinline preload="auto"></video>
+        </div>
+        <div class="video-loading" id="video-loading" aria-live="polite" aria-busy="true" aria-label="Loading background">
+            <canvas id="video-loading-canvas" class="video-loading-canvas" width="224" height="224" aria-hidden="true"></canvas>
+        </div>
     </div>
     <div class="video-overlay"></div>
 
@@ -90,7 +95,7 @@
                 <h4>Haptics, Robotics, and Virtual Interaction Lab</h4>
                 <p class="cv-detail-role">Undergraduate researcher &middot; USC Viterbi</p>
                 <p class="cv-detail-period">August 2025 – present</p>
-                <p class="cv-detail-desc">reserach into immersive interaction: computer vision + haptics + LLMs</p>
+                <p class="cv-detail-desc">research into immersive interaction: computer vision + haptics + LLMs</p>
             </div>
             <div class="cv-detail" data-for="experience3">
                 <h4>Academic Innovation &amp; Research Engagement</h4>
