@@ -66,15 +66,18 @@ document.addEventListener('DOMContentLoaded', () => {
         loadingCanvas.height = Math.round(LOADING_CSS_PX * dpr);
 
         const n = 120;
+        const ringR = 41;
+        const ringHalfThickness = 1.1;
         const particles = [];
         for (let i = 0; i < n; i++) {
-            const r = 5 + Math.random() ** 0.65 * 46;
+            const r = ringR + (Math.random() - 0.5) * ringHalfThickness * 2;
+            const baseAngle = (i / n) * Math.PI * 2;
             particles.push({
                 r,
-                phase: Math.random() * Math.PI * 2,
+                phase: baseAngle + (Math.random() - 0.5) * 0.12,
                 spinSign: Math.random() < 0.94 ? 1 : -1,
-                size: 0.55 + Math.random() * 1.05,
-                alpha: 0.18 + Math.random() * 0.42,
+                size: 0.18 + Math.random() * 0.32,
+                alpha: 0.22 + Math.random() * 0.4,
             });
         }
 
@@ -90,7 +93,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const global = t * 0.38;
             for (const p of particles) {
                 const omega = (1.05 / Math.sqrt(Math.max(p.r, 2.5))) * p.spinSign;
-                const wobble = Math.sin(t * 1.55 + p.phase * 3.1) * 2.4;
+                const wobble = Math.sin(t * 1.55 + p.phase * 3.1) * 0.65;
                 const rr = p.r + wobble;
                 const th = p.phase + t * omega * 4.8 + global;
                 const x = cx + Math.cos(th) * rr;
