@@ -230,6 +230,8 @@ b {
         border-right: none;
         border-bottom: none;
         padding-bottom: calc(20px + env(safe-area-inset-bottom, 0px));
+        overflow-y: auto;
+        overscroll-behavior: contain;
     }
 
     .name {
@@ -287,12 +289,14 @@ b {
 @media (max-width: 600px) {
     .sidebar {
         padding: 20px 15px;
+        padding-bottom: calc(20px + env(safe-area-inset-bottom, 0px));
     }
 }
 
 @media (max-width: 480px) {
     .sidebar {
         padding: 15px;
+        padding-bottom: calc(20px + env(safe-area-inset-bottom, 0px));
     }
 
     .name {
@@ -309,12 +313,14 @@ b {
 @media (max-width: 375px) {
     .sidebar {
         padding: 12px;
+        padding-bottom: calc(20px + env(safe-area-inset-bottom, 0px));
     }
 }
 
 @media (max-width: 320px) {
     .sidebar {
         padding: 10px;
+        padding-bottom: calc(20px + env(safe-area-inset-bottom, 0px));
     }
 
     .name {
