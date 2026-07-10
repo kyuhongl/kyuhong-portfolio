@@ -9,7 +9,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const ASCII_CHARACTERS = '~-*=kyuhong';
     const LIGHT_CHARACTER = ' ';
     const BRIGHTNESS_THRESHOLD = 228;
-    const ASPECT_RATIO_COMPENSATION = 0.74;
+    const ASPECT_RATIO_COMPENSATION = 0.9;
     const GRAYSCALE_LEVELS = [56, 72, 88, 106, 126, 148, 172, 198];
     const ANIMATION_SLOWDOWN = 1.50;
 
