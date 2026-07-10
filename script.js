@@ -142,6 +142,7 @@ document.addEventListener('DOMContentLoaded', () => {
         rafId = requestAnimationFrame(renderAsciiFrame);
     }
 
+    // Prefer MP4 on mobile Safari because animated GIF frame sampling is less reliable there.
     async function prepareVideoSource() {
         if (!sourceVideo) return false;
         if (!sourceVideo.canPlayType('video/mp4')) return false;
