@@ -4,6 +4,13 @@
     box-sizing: border-box;
 }
 
+:root {
+    --frame-inset-desktop: clamp(18px, 2vw, 30px);
+    --frame-inset-mobile: clamp(10px, 3.8vw, 16px);
+    --frame-content-gap-desktop: 14px;
+    --frame-content-gap-mobile: 16px;
+}
+
 body {
     font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Helvetica Neue', Arial, sans-serif;
     background: #fff;
@@ -97,6 +104,51 @@ body::-webkit-scrollbar {
     pointer-events: none;
 }
 
+.desktop-frame {
+    position: fixed;
+    inset: var(--frame-inset-desktop);
+    z-index: 6;
+    pointer-events: none;
+    border: 1px solid rgba(0, 0, 0, 0.18);
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.45);
+    transform: translateZ(0);
+    -webkit-transform: translateZ(0);
+    backface-visibility: hidden;
+    -webkit-backface-visibility: hidden;
+}
+
+.mobile-ascii-artifact {
+    display: none;
+    position: relative;
+}
+
+.mobile-ascii-source {
+    position: absolute;
+    width: 0;
+    height: 0;
+    opacity: 0;
+    pointer-events: none;
+    z-index: 0;
+}
+
+.mobile-ascii-output {
+    margin: 0;
+    display: block;
+    width: max-content;
+    max-width: 100%;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', monospace;
+    font-size: clamp(4.2px, 1.38vw, 6.4px);
+    line-height: 0.58;
+    letter-spacing: -0.045em;
+    font-weight: 500;
+    white-space: pre;
+    text-align: left;
+    position: relative;
+    z-index: 1;
+    text-rendering: geometricPrecision;
+    -webkit-font-smoothing: antialiased;
+}
+
 /* ─── Sidebar ─── */
 .sidebar {
     position: fixed;
@@ -165,25 +217,16 @@ body::-webkit-scrollbar {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    width: 36px;
-    height: 36px;
-    min-height: 44px;
-    min-width: 44px;
-    border-radius: 8px;
-    background: #fff;
+    padding: 4px;
     color: rgba(0, 0, 0, 0.6);
     text-decoration: none;
-    transition: all 0.2s ease;
-    border: 1px solid rgba(0, 0, 0, 0.08);
+    transition: color 0.2s ease, transform 0.2s ease;
     -webkit-tap-highlight-color: rgba(0, 0, 0, 0.05);
 }
 
 .social-link:hover {
-    background: #fff;
     color: rgba(0, 0, 0, 0.85);
-    transform: translateY(-2px);
-    border-color: rgba(0, 0, 0, 0.15);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+    transform: translateY(-1px);
 }
 
 .social-link svg {
@@ -197,53 +240,70 @@ b {
 
 /* ─── Responsive (sidebar) ─── */
 @media (max-width: 768px) {
-    .video-bg::after {
-        content: '';
-        position: absolute;
-        inset: 0;
-        z-index: 2;
-        background: transparent;
+    html,
+    body {
+        height: 100dvh;
+        overflow: hidden;
+    }
+
+    .video-bg,
+    .video-overlay {
+        display: none;
+    }
+
+    .desktop-frame {
+        position: fixed;
+        top: calc(env(safe-area-inset-top, 0px) + var(--frame-inset-mobile));
+        right: calc(env(safe-area-inset-right, 0px) + var(--frame-inset-mobile));
+        bottom: calc(env(safe-area-inset-bottom, 0px) + var(--frame-inset-mobile));
+        left: calc(env(safe-area-inset-left, 0px) + var(--frame-inset-mobile));
+    }
+
+    .mobile-ascii-artifact {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        width: 100%;
+        min-height: min(92vw, 360px);
+        margin-top: auto;
+        margin-bottom: clamp(24px, 6vh, 64px);
         pointer-events: none;
+        opacity: 1;
     }
 
-    .video-bg-media {
-        filter: none;
-    }
-
-    .bg-video {
-        width: auto;
-        height: 124vh;
-        min-width: 124vw;
-        object-fit: cover;
+    .mobile-ascii-output {
+        font-size: clamp(4.6px, 1.55vw, 7px);
     }
 
     .sidebar {
         position: fixed;
-        left: 0;
-        top: 0;
+        inset: 0;
         width: 100%;
-        height: 100vh;
+        height: 100dvh;
         min-height: 100dvh;
-        padding: 30px 20px;
+        padding-top: calc(env(safe-area-inset-top, 0px) + var(--frame-inset-mobile) + var(--frame-content-gap-mobile));
+        padding-right: calc(env(safe-area-inset-right, 0px) + var(--frame-inset-mobile) + var(--frame-content-gap-mobile));
+        padding-bottom: calc(env(safe-area-inset-bottom, 0px) + var(--frame-inset-mobile) + var(--frame-content-gap-mobile));
+        padding-left: calc(env(safe-area-inset-left, 0px) + var(--frame-inset-mobile) + var(--frame-content-gap-mobile));
         justify-content: flex-start;
         text-align: left;
         border-right: none;
         border-bottom: none;
-        padding-bottom: calc(20px + env(safe-area-inset-bottom, 0px));
         overflow-y: auto;
         overscroll-behavior: contain;
+        -webkit-overflow-scrolling: touch;
     }
 
     .name {
         font-size: 18px;
-        margin-bottom: 20px;
-        padding-bottom: 20px;
+        margin-bottom: 14px;
+        padding-bottom: 14px;
         text-align: left;
     }
 
     .bio {
         font-size: 14px;
-        margin-bottom: 20px;
+        margin-bottom: 14px;
         text-align: left;
         display: flex;
         flex-direction: column;
@@ -287,22 +347,21 @@ b {
 }
 
 @media (max-width: 600px) {
-    .sidebar {
-        padding: 20px 15px;
-        padding-bottom: calc(20px + env(safe-area-inset-bottom, 0px));
+    :root {
+        --frame-content-gap-mobile: 14px;
     }
 }
 
 @media (max-width: 480px) {
-    .sidebar {
-        padding: 15px;
-        padding-bottom: calc(20px + env(safe-area-inset-bottom, 0px));
+    :root {
+        --frame-inset-mobile: clamp(9px, 3.6vw, 14px);
+        --frame-content-gap-mobile: 12px;
     }
 
     .name {
         font-size: 16px;
-        margin-bottom: 15px;
-        padding-bottom: 15px;
+        margin-bottom: 12px;
+        padding-bottom: 12px;
     }
 
     .bio {
@@ -311,16 +370,14 @@ b {
 }
 
 @media (max-width: 375px) {
-    .sidebar {
-        padding: 12px;
-        padding-bottom: calc(20px + env(safe-area-inset-bottom, 0px));
+    :root {
+        --frame-content-gap-mobile: 10px;
     }
 }
 
 @media (max-width: 320px) {
-    .sidebar {
-        padding: 10px;
-        padding-bottom: calc(20px + env(safe-area-inset-bottom, 0px));
+    :root {
+        --frame-content-gap-mobile: 8px;
     }
 
     .name {

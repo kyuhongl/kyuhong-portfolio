@@ -1,4 +1,198 @@
 document.addEventListener('DOMContentLoaded', () => {
+    const sourceImg = document.getElementById('mobile-ascii-source');
+    const outputEl = document.getElementById('mobile-ascii-output');
+
+    if (!sourceImg || !outputEl) return;
+
+    const ASCII_WIDTH = 110;
+    const ASCII_CHARACTERS = '~-*=kyuhong';
+    const LIGHT_CHARACTER = ' ';
+    const BRIGHTNESS_THRESHOLD = 228;
+    const ASPECT_RATIO_COMPENSATION = 0.74;
+    const GRAYSCALE_LEVELS = [56, 72, 88, 106, 126, 148, 172, 198];
+    const ANIMATION_SLOWDOWN = 1.50;
+
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d', { willReadFrequently: true });
+
+    if (!ctx) return;
+
+    let asciiHeight = 0;
+    let rafId = null;
+    let decodedFrames = [];
+    let activeFrameIndex = 0;
+    let nextFrameAt = 0;
+
+    function updateAsciiDimensions(width, height) {
+        if (!width || !height) return false;
+
+        const aspectRatio = height / width;
+        asciiHeight = Math.max(1, Math.round(ASCII_WIDTH * aspectRatio * ASPECT_RATIO_COMPENSATION));
+        canvas.width = ASCII_WIDTH;
+        canvas.height = asciiHeight;
+        ctx.imageSmoothingEnabled = true;
+        ctx.imageSmoothingQuality = 'high';
+        return true;
+    }
+
+    function glyphForBrightness(brightness, x, y) {
+        if (brightness >= BRIGHTNESS_THRESHOLD) {
+            return { character: LIGHT_CHARACTER, gray: null };
+        }
+
+        const darkness = 1 - Math.max(0, Math.min(1, brightness / BRIGHTNESS_THRESHOLD));
+        const grayIndex = Math.min(
+            GRAYSCALE_LEVELS.length - 1,
+            Math.floor(darkness * GRAYSCALE_LEVELS.length)
+        );
+        const characterIndex = Math.min(
+            ASCII_CHARACTERS.length - 1,
+            Math.floor(darkness * ASCII_CHARACTERS.length)
+        );
+
+        return {
+            character: ASCII_CHARACTERS[(x + y + characterIndex) % ASCII_CHARACTERS.length],
+            gray: GRAYSCALE_LEVELS[grayIndex]
+        };
+    }
+
+    function renderAsciiFromSource(frameSource) {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.drawImage(frameSource, 0, 0, ASCII_WIDTH, asciiHeight);
+
+        const { data } = ctx.getImageData(0, 0, ASCII_WIDTH, asciiHeight);
+        let ascii = '';
+
+        for (let y = 0; y < asciiHeight; y += 1) {
+            let activeGray = null;
+            let run = '';
+
+            function flushRun() {
+                if (!run) return;
+                if (activeGray == null) {
+                    ascii += run;
+                } else {
+                    ascii += `<span style="color: rgb(${activeGray}, ${activeGray}, ${activeGray})">${run}</span>`;
+                }
+                run = '';
+            }
+
+            for (let x = 0; x < ASCII_WIDTH; x += 1) {
+                const index = (y * ASCII_WIDTH + x) * 4;
+                const alpha = data[index + 3];
+
+                if (alpha < 16) {
+                    if (activeGray !== null) {
+                        flushRun();
+                        activeGray = null;
+                    }
+                    run += LIGHT_CHARACTER;
+                    continue;
+                }
+
+                const red = data[index];
+                const green = data[index + 1];
+                const blue = data[index + 2];
+                const brightness = 0.2126 * red + 0.7152 * green + 0.0722 * blue;
+                const glyph = glyphForBrightness(brightness, x, y);
+
+                if (glyph.gray !== activeGray) {
+                    flushRun();
+                    activeGray = glyph.gray;
+                }
+
+                run += glyph.character;
+            }
+
+            flushRun();
+
+            if (y < asciiHeight - 1) {
+                ascii += '\n';
+            }
+        }
+
+        outputEl.innerHTML = ascii;
+    }
+
+    function renderAsciiFrame(now) {
+        if (!asciiHeight) {
+            rafId = requestAnimationFrame(renderAsciiFrame);
+            return;
+        }
+
+        if (decodedFrames.length > 0) {
+            if (nextFrameAt === 0) {
+                nextFrameAt = now + decodedFrames[0].durationMs;
+            } else {
+                while (now >= nextFrameAt) {
+                    activeFrameIndex = (activeFrameIndex + 1) % decodedFrames.length;
+                    nextFrameAt += decodedFrames[activeFrameIndex].durationMs;
+                }
+            }
+
+            renderAsciiFromSource(decodedFrames[activeFrameIndex].image);
+        } else if (sourceImg.complete && sourceImg.naturalWidth) {
+            renderAsciiFromSource(sourceImg);
+        }
+
+        rafId = requestAnimationFrame(renderAsciiFrame);
+    }
+
+    async function decodeGifFrames() {
+        if (!('ImageDecoder' in window)) return false;
+
+        try {
+            const response = await fetch(sourceImg.currentSrc || sourceImg.src);
+            const imageData = await response.arrayBuffer();
+            const mimeType = response.headers.get('content-type') || 'image/gif';
+            const decoder = new ImageDecoder({ data: imageData, type: mimeType, preferAnimation: true });
+            await decoder.tracks.ready;
+
+            const track = decoder.tracks.selectedTrack;
+            const width = track?.codedWidth || sourceImg.naturalWidth;
+            const height = track?.codedHeight || sourceImg.naturalHeight;
+            if (!updateAsciiDimensions(width, height)) return false;
+
+            const frameCount = track?.frameCount || 1;
+            const frames = [];
+
+            for (let frameIndex = 0; frameIndex < frameCount; frameIndex += 1) {
+                const result = await decoder.decode({ frameIndex });
+                frames.push({
+                    image: result.image,
+                    durationMs: Math.max(20, Math.round(((result.image.duration || 100000) / 1000) * ANIMATION_SLOWDOWN))
+                });
+            }
+
+            decodedFrames = frames;
+            activeFrameIndex = 0;
+            nextFrameAt = 0;
+            return decodedFrames.length > 0;
+        } catch {
+            decodedFrames = [];
+            return false;
+        }
+    }
+
+    async function startAsciiAnimation() {
+        if (!updateAsciiDimensions(sourceImg.naturalWidth, sourceImg.naturalHeight)) return;
+        await decodeGifFrames();
+        if (rafId !== null) cancelAnimationFrame(rafId);
+        rafId = requestAnimationFrame(renderAsciiFrame);
+    }
+
+    if (sourceImg.complete) {
+        void startAsciiAnimation();
+    } else {
+        sourceImg.addEventListener('load', () => {
+            void startAsciiAnimation();
+        }, { once: true });
+    }
+});
+
+document.addEventListener('DOMContentLoaded', () => {
+    if (window.matchMedia('(max-width: 768px)').matches) return;
+
     const FORWARD_SRC = 'img/background.mp4';
     const REVERSE_SRC = 'img/background-reversed.mp4';
     const FORWARD = 'forward';
@@ -689,4 +883,3 @@ document.addEventListener('DOMContentLoaded', () => {
         }, 120);
     });
 })();
-
