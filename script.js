@@ -1,4 +1,5 @@
 document.addEventListener('DOMContentLoaded', () => {
+    const sourceVideo = document.getElementById('mobile-ascii-video');
     const sourceImg = document.getElementById('mobile-ascii-source');
     const outputEl = document.getElementById('mobile-ascii-output');
 
@@ -19,6 +20,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     let asciiHeight = 0;
     let rafId = null;
+    let useVideo = false;
     let decodedFrames = [];
     let activeFrameIndex = 0;
     let nextFrameAt = 0;
@@ -120,7 +122,9 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
-        if (decodedFrames.length > 0) {
+        if (useVideo && sourceVideo && sourceVideo.readyState >= 2 && sourceVideo.videoWidth > 0) {
+            renderAsciiFromSource(sourceVideo);
+        } else if (decodedFrames.length > 0) {
             if (nextFrameAt === 0) {
                 nextFrameAt = now + decodedFrames[0].durationMs;
             } else {
@@ -136,6 +140,48 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         rafId = requestAnimationFrame(renderAsciiFrame);
+    }
+
+    async function prepareVideoSource() {
+        if (!sourceVideo) return false;
+        if (!sourceVideo.canPlayType('video/mp4')) return false;
+
+        sourceVideo.muted = true;
+        sourceVideo.loop = true;
+        sourceVideo.playsInline = true;
+        sourceVideo.playbackRate = 1 / ANIMATION_SLOWDOWN;
+
+        if (sourceVideo.readyState < 2 || !sourceVideo.videoWidth) {
+            await new Promise((resolve) => {
+                let settled = false;
+
+                function finish() {
+                    if (settled) return;
+                    settled = true;
+                    sourceVideo.removeEventListener('loadeddata', finish);
+                    sourceVideo.removeEventListener('canplay', finish);
+                    sourceVideo.removeEventListener('error', finish);
+                    resolve();
+                }
+
+                sourceVideo.addEventListener('loadeddata', finish, { once: true });
+                sourceVideo.addEventListener('canplay', finish, { once: true });
+                sourceVideo.addEventListener('error', finish, { once: true });
+                setTimeout(finish, 1500);
+            });
+        }
+
+        try {
+            await sourceVideo.play();
+        } catch {}
+
+        if (!sourceVideo.videoWidth || sourceVideo.readyState < 2) return false;
+
+        useVideo = true;
+        decodedFrames = [];
+        activeFrameIndex = 0;
+        nextFrameAt = 0;
+        return updateAsciiDimensions(sourceVideo.videoWidth, sourceVideo.videoHeight);
     }
 
     async function decodeGifFrames() {
@@ -175,8 +221,13 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     async function startAsciiAnimation() {
-        if (!updateAsciiDimensions(sourceImg.naturalWidth, sourceImg.naturalHeight)) return;
-        await decodeGifFrames();
+        useVideo = await prepareVideoSource();
+
+        if (!useVideo) {
+            if (!updateAsciiDimensions(sourceImg.naturalWidth, sourceImg.naturalHeight)) return;
+            await decodeGifFrames();
+        }
+
         if (rafId !== null) cancelAnimationFrame(rafId);
         rafId = requestAnimationFrame(renderAsciiFrame);
     }

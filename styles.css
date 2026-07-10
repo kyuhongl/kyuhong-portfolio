@@ -252,11 +252,7 @@ b {
     }
 
     .desktop-frame {
-        position: fixed;
-        top: calc(env(safe-area-inset-top, 0px) + var(--frame-inset-mobile));
-        right: calc(env(safe-area-inset-right, 0px) + var(--frame-inset-mobile));
-        bottom: calc(env(safe-area-inset-bottom, 0px) + var(--frame-inset-mobile));
-        left: calc(env(safe-area-inset-left, 0px) + var(--frame-inset-mobile));
+        display: none;
     }
 
     .mobile-ascii-artifact {
@@ -264,11 +260,12 @@ b {
         justify-content: center;
         align-items: center;
         width: 100%;
-        min-height: min(92vw, 360px);
-        margin-top: auto;
-        margin-bottom: clamp(24px, 6vh, 64px);
+        min-height: min(72vw, 260px);
+        margin-top: clamp(12px, 2.4vh, 20px);
+        margin-bottom: 0;
         pointer-events: none;
         opacity: 1;
+        flex-shrink: 0;
     }
 
     .mobile-ascii-output {
@@ -277,21 +274,19 @@ b {
 
     .sidebar {
         position: fixed;
-        inset: 0;
-        width: 100%;
-        height: 100dvh;
-        min-height: 100dvh;
-        padding-top: calc(env(safe-area-inset-top, 0px) + var(--frame-inset-mobile) + var(--frame-content-gap-mobile));
-        padding-right: calc(env(safe-area-inset-right, 0px) + var(--frame-inset-mobile) + var(--frame-content-gap-mobile));
-        padding-bottom: calc(env(safe-area-inset-bottom, 0px) + var(--frame-inset-mobile) + var(--frame-content-gap-mobile));
-        padding-left: calc(env(safe-area-inset-left, 0px) + var(--frame-inset-mobile) + var(--frame-content-gap-mobile));
+        top: calc(env(safe-area-inset-top, 0px) + var(--frame-inset-mobile));
+        right: calc(env(safe-area-inset-right, 0px) + var(--frame-inset-mobile));
+        bottom: calc(env(safe-area-inset-bottom, 0px) + var(--frame-inset-mobile));
+        left: calc(env(safe-area-inset-left, 0px) + var(--frame-inset-mobile));
+        width: auto;
+        height: auto;
+        min-height: 0;
+        padding: var(--frame-content-gap-mobile);
         justify-content: flex-start;
         text-align: left;
-        border-right: none;
-        border-bottom: none;
-        overflow-y: auto;
-        overscroll-behavior: contain;
-        -webkit-overflow-scrolling: touch;
+        border: 1px solid rgba(0, 0, 0, 0.18);
+        box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.45);
+        overflow: hidden;
     }
 
     .name {
@@ -308,6 +303,7 @@ b {
         display: flex;
         flex-direction: column;
         flex: 1;
+        min-height: 0;
     }
 
     .mobile-experiences {
@@ -342,7 +338,7 @@ b {
 
     .social-links {
         justify-content: flex-start;
-        margin-top: auto;
+        margin-top: 14px;
     }
 }
 
