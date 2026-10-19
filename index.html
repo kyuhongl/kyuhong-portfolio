@@ -40,7 +40,16 @@
             <div class="mobile-experiences" aria-label="Past experiences">
                 <p class="mobile-experiences-title">currently at:</p>
                 <p class="mobile-experience-label">Google</p>
-                <p class="mobile-experience-sub">incoming software engineer, aug 2027</p>
+                <div class="cv-role-list">
+                    <div class="cv-role">
+                        <span class="cv-role-marker" aria-hidden="true"></span>
+                        <p class="mobile-experience-sub">incoming software engineer, aug 2027</p>
+                    </div>
+                    <div class="cv-role">
+                        <span class="cv-role-marker" aria-hidden="true"></span>
+                        <p class="mobile-experience-sub">software engineering intern, may – aug 2026</p>
+                    </div>
+                </div>
             </div>
             <div class="mobile-ascii-artifact" aria-hidden="true">
                 <video id="mobile-ascii-video" class="mobile-ascii-source" src="img/swan_lake.mp4" muted playsinline loop preload="auto"></video>
@@ -56,13 +65,18 @@
         <div class="cv-list" id="cv-list">
             <div class="cv-list-pad-top"></div>
 
-            <div class="cv-item" data-detail="experience">
+            <div class="cv-item cv-item-group">
                 <span class="cv-item-label">Google</span>
-                <span class="cv-item-sub">incoming software engineer &middot; aug 2027</span>
-            </div>
-            <div class="cv-item" data-detail="experience-intern">
-                <span class="cv-item-label">Google</span>
-                <span class="cv-item-sub">software engineering intern &middot; may – aug 2026</span>
+                <div class="cv-role-list">
+                    <div class="cv-role" data-detail="experience">
+                        <span class="cv-role-marker" aria-hidden="true"></span>
+                        <span class="cv-item-sub">incoming software engineer &middot; aug 2027</span>
+                    </div>
+                    <div class="cv-role" data-detail="experience-intern">
+                        <span class="cv-role-marker" aria-hidden="true"></span>
+                        <span class="cv-item-sub">software engineering intern &middot; may – aug 2026</span>
+                    </div>
+                </div>
             </div>
             <div class="cv-item" data-detail="experience2">
                 <span class="cv-item-label">Haptics, Robotics, and Virtual Interaction Lab @ USC</span>

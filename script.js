@@ -646,9 +646,23 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    function detailTargetFromEvent(e, item) {
+        const role = e.target.closest('.cv-role[data-detail]');
+        if (role && item.contains(role)) return role;
+        return item.querySelector('.cv-role[data-detail]') || item;
+    }
+
     function onItemMouseMove(e) {
         cursorX = e.clientX;
         cursorY = e.clientY;
+        const target = detailTargetFromEvent(e, e.currentTarget);
+        if (target !== hoveredItem) {
+            hoveredItem = target;
+            showDetail(target.getAttribute('data-detail'));
+            requestAnimationFrame(() => {
+                requestAnimationFrame(() => scheduleDetailGlassRebuild());
+            });
+        }
         if (!rafId) {
             rafId = requestAnimationFrame(() => {
                 updateLLine();
@@ -659,11 +673,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function onItemMouseEnter(e) {
         const item = e.currentTarget;
-        hoveredItem = item;
+        const target = detailTargetFromEvent(e, item);
+        hoveredItem = target;
         cursorX = e.clientX;
         cursorY = e.clientY;
 
-        const key = item.getAttribute('data-detail');
+        const key = target.getAttribute('data-detail');
         showDetail(key);
         ensureSVGElements();
         updateLLine();
